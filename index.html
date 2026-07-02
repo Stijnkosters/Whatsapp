@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drivemax · Recovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,500..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220; --panel:#111B2E; --line:#1E2A42;
+    --txt:#E8EDF6; --dim:#8A97AD;
+    --wa:#25D366; --wa-dim:#17563A; --r2:#F2B84B; --danger:#F26D6D;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:"IBM Plex Mono",monospace;min-height:100vh}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:18px}
+  h1{font-family:"Archivo",sans-serif;font-stretch:75%;font-weight:800;font-size:1.7rem;letter-spacing:.02em;text-transform:uppercase}
+  h1 span{color:var(--wa)}
+  .status{font-size:.72rem;color:var(--dim)}
+  .status b{color:var(--txt);font-weight:500}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--wa);margin-right:6px;box-shadow:0 0 8px var(--wa)}
+
+  .pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:26px 0 8px;position:relative}
+  .pipeline::before{content:"";position:absolute;left:2%;right:2%;top:50%;border-top:2px dashed var(--line);z-index:0}
+  .stage{position:relative;z-index:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 14px;margin:0 6px;text-align:center}
+  .stage .num{font-family:"Archivo",sans-serif;font-stretch:75%;font-weight:800;font-size:1.9rem;line-height:1}
+  .stage .lbl{font-size:.66rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:6px}
+  .stage.wa .num{color:var(--wa)} .stage.r2 .num{color:var(--r2)}
+  .stage .sub{font-size:.68rem;color:var(--dim);margin-top:3px}
+
+  h2{font-family:"Archivo",sans-serif;font-stretch:75%;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin:32px 0 12px}
+  .grid{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .legend{display:flex;gap:16px;font-size:.68rem;color:var(--dim);margin-bottom:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+  table{width:100%;border-collapse:collapse;font-size:.75rem}
+  th{text-align:left;color:var(--dim);font-weight:500;text-transform:uppercase;letter-spacing:.06em;font-size:.62rem;padding:9px 8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:rgba(37,211,102,.04)}
+  .tag{font-size:.6rem;padding:2px 7px;border-radius:20px;letter-spacing:.05em;white-space:nowrap}
+  .tag.r1{background:var(--wa-dim);color:var(--wa)} .tag.r2{background:#4a3a12;color:var(--r2)}
+  .flag{font-size:.62rem;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--dim)}
+  .amt{text-align:right;font-weight:600}
+
+  /* settings */
+  .set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:.76rem}
+  .set-row:last-of-type{border-bottom:none}
+  .set-row label{color:var(--txt)}
+  .set-row small{display:block;color:var(--dim);font-size:.64rem;margin-top:2px}
+  input[type=number],input[type=text]{width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--txt);font-family:inherit;font-size:.76rem;padding:7px 9px;text-align:right}
+  input[type=text]{text-align:left;text-transform:uppercase}
+  input:focus{outline:none;border-color:var(--wa)}
+  .switch{position:relative;width:40px;height:22px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;inset:0;background:var(--line);border-radius:22px;transition:.15s}
+  .slider::before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:var(--dim);border-radius:50%;transition:.15s}
+  .switch input:checked + .slider{background:var(--wa-dim)}
+  .switch input:checked + .slider::before{background:var(--wa);transform:translateX(18px)}
+  .langs{display:flex;gap:8px;flex-wrap:wrap}
+  .lang-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.7rem;cursor:pointer;user-select:none}
+  .lang-chip.on{border-color:var(--wa);color:var(--wa)}
+  button{background:var(--wa);color:#06130B;border:none;border-radius:6px;font-family:"Archivo",sans-serif;font-stretch:75%;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;padding:11px 20px;cursor:pointer;width:100%;margin-top:14px}
+  button.ghost{background:none;border:1px solid var(--line);color:var(--dim);margin-top:8px}
+  button:hover{filter:brightness(1.1)}
+  .saved{color:var(--wa);font-size:.68rem;text-align:center;margin-top:8px;opacity:0;transition:.3s}
+  .saved.show{opacity:1}
+  .empty{color:var(--dim);font-size:.76rem;padding:22px;text-align:center}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}.pipeline{grid-template-columns:repeat(2,1fr);gap:10px}.pipeline::before{display:none}.stage{margin:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Drivemax <span>Recovery</span></h1>
+    <div class="status" id="status"><span class="dot"></span>laden…</div>
+  </header>
+
+  <div id="pipeline"></div>
+
+  <div class="grid">
+    <div>
+      <h2>Berichten per dag</h2>
+      <div class="box">
+        <div class="legend">
+          <span><i style="background:var(--wa)"></i>Reminder 1</span>
+          <span><i style="background:var(--r2)"></i>Reminder 2 (korting)</span>
+          <span id="langlegend"></span>
+        </div>
+        <svg id="chart" viewBox="0 0 1040 150" width="100%"></svg>
+      </div>
+
+      <h2>Laatste berichten</h2>
+      <div class="box" style="padding:6px 12px" id="recent"></div>
+    </div>
+
+    <div>
+      <h2>Instellingen</h2>
+      <div class="box" id="settings"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const euro=n=>"€"+(n||0).toLocaleString("nl-NL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const LANG_LABEL={nl:"🇳🇱 NL",de:"🇩🇪 DE",pl:"🇵🇱 PL",en:"🇬🇧 EN"};
+let S=null;
+
+async function load(){
+  const r=await fetch("/api/overview");
+  const d=await r.json();
+  S=d.settings;
+  renderPipeline(d);
+  renderChart(d.stats.perDay);
+  renderRecent(d.stats.recent);
+  renderSettings();
+  renderLangLegend(d.stats.perLang);
+  const last=d.stats.recent[0]?.sent_at;
+  $("status").innerHTML=`<span class="dot"></span>laatste bericht: <b>${last?new Date(last).toLocaleString("nl-NL"):"nog geen"}</b>`;
+}
+
+function renderPipeline(d){
+  const t=r=>d.stats.totals.find(x=>x.reminder===r)||{sent:0,cart_value:0};
+  const r1=t(1),r2=t(2),rec=d.recovered;
+  $("pipeline").innerHTML=`
+  <div class="pipeline">
+    <div class="stage"><div class="num">${r1.sent+r2.sent}</div><div class="lbl">Berichten 30d</div><div class="sub">${euro(r1.cart_value+r2.cart_value)} cartwaarde</div></div>
+    <div class="stage wa"><div class="num">${r1.sent}</div><div class="lbl">Reminder 1</div><div class="sub">na ${S.reminder1.delayMinutes} min</div></div>
+    <div class="stage r2"><div class="num">${r2.sent}</div><div class="lbl">Reminder 2</div><div class="sub">na ${Math.round(S.reminder2.delayMinutes/60)} uur · code ${S.reminder2.discountCode||"—"}</div></div>
+    <div class="stage wa"><div class="num">${rec?euro(rec.revenue):"—"}</div><div class="lbl">Recovered 30d</div><div class="sub">${rec?rec.orders+" orders via "+rec.code:"nog geen data"}</div></div>
+  </div>`;
+}
+
+function renderChart(perDay){
+  const days={};
+  for(let i=13;i>=0;i--){const d=new Date(Date.now()-i*86400000).toISOString().slice(0,10);days[d]={1:0,2:0}}
+  for(const row of perDay){if(days[row.day])days[row.day][row.reminder]=row.n}
+  const maxDay=Math.max(1,...Object.values(days).map(d=>d[1]+d[2]));
+  const W=1040,H=150,bw=W/14;let bars="";
+  Object.entries(days).forEach(([d,v],i)=>{
+    const h1=v[1]/maxDay*(H-30),h2=v[2]/maxDay*(H-30);
+    const x=i*bw+bw*.18,w=bw*.64;
+    bars+=`<rect x="${x}" y="${H-20-h1}" width="${w}" height="${h1}" fill="var(--wa)" rx="2"/>`;
+    bars+=`<rect x="${x}" y="${H-20-h1-h2}" width="${w}" height="${h2}" fill="var(--r2)" rx="2"/>`;
+    if(v[1]+v[2])bars+=`<text x="${x+w/2}" y="${H-24-h1-h2}" fill="var(--dim)" font-size="10" text-anchor="middle">${v[1]+v[2]}</text>`;
+    bars+=`<text x="${x+w/2}" y="${H-5}" fill="var(--dim)" font-size="9" text-anchor="middle">${d.slice(8)}/${d.slice(5,7)}</text>`;
+  });
+  $("chart").innerHTML=bars;
+}
+
+function renderLangLegend(perLang){
+  $("langlegend").textContent=perLang.map(l=>`${(LANG_LABEL[l.lang]||l.lang)} ${l.n}`).join("  ·  ");
+}
+
+function renderRecent(recent){
+  if(!recent.length){$("recent").innerHTML=`<div class="empty">Nog geen berichten verstuurd. Na de eerste run met activiteit verschijnt alles hier.</div>`;return}
+  $("recent").innerHTML=`<table><thead><tr><th>Tijd</th><th>Checkout</th><th>Naam</th><th>Land</th><th>Product</th><th>Type</th><th style="text-align:right">Cart</th></tr></thead><tbody>
+  ${recent.map(m=>`<tr>
+    <td>${new Date(m.sent_at).toLocaleString("nl-NL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+    <td>${m.checkout_name||""}</td>
+    <td>${m.first_name||""} <span style="color:var(--dim)">+${m.phone_masked}</span></td>
+    <td><span class="flag">${m.country||"?"} · ${m.lang}</span></td>
+    <td>${(m.product||"").slice(0,30)}</td>
+    <td><span class="tag r${m.reminder}">${m.reminder===1?"R1":"R2"}</span></td>
+    <td class="amt">${euro(m.amount)}</td>
+  </tr>`).join("")}</tbody></table>`;
+}
+
+function renderSettings(){
+  $("settings").innerHTML=`
+    <div class="set-row">
+      <div><label>Reminder 1</label><small>eerste herinnering, geen korting</small></div>
+      <label class="switch"><input type="checkbox" id="r1on" ${S.reminder1.enabled?"checked":""}><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div><label>Wachttijd reminder 1</label><small>minuten na verlaten checkout</small></div>
+      <input type="number" id="r1delay" value="${S.reminder1.delayMinutes}" min="15" step="15">
+    </div>
+    <div class="set-row">
+      <div><label>Reminder 2</label><small>follow-up met kortingscode</small></div>
+      <label class="switch"><input type="checkbox" id="r2on" ${S.reminder2.enabled?"checked":""}><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div><label>Wachttijd reminder 2</label><small>minuten (1440 = 24 uur)</small></div>
+      <input type="number" id="r2delay" value="${S.reminder2.delayMinutes}" min="60" step="60">
+    </div>
+    <div class="set-row">
+      <div><label>Kortingscode</label><small>moet bestaan in Shopify → Discounts</small></div>
+      <input type="text" id="code" value="${S.reminder2.discountCode||""}">
+    </div>
+    <div class="set-row" style="display:block">
+      <label>Talen actief</label><small style="margin-bottom:8px">klant krijgt bericht in eigen taal (land van adres)</small>
+      <div class="langs" style="margin-top:8px">
+        ${["nl","de","pl","en"].map(l=>`<span class="lang-chip ${S.languages[l]?"on":""}" data-lang="${l}">${LANG_LABEL[l]}</span>`).join("")}
+      </div>
+    </div>
+    <button onclick="save()">Instellingen opslaan</button>
+    <button class="ghost" onclick="runNow(this)">▶ Run nu handmatig</button>
+    <div class="saved" id="saved">Opgeslagen ✓</div>`;
+  document.querySelectorAll(".lang-chip").forEach(ch=>{
+    ch.onclick=()=>{ch.classList.toggle("on")};
+  });
+}
+
+async function save(){
+  const langs={};document.querySelectorAll(".lang-chip").forEach(ch=>langs[ch.dataset.lang]=ch.classList.contains("on"));
+  const body={
+    reminder1:{enabled:$("r1on").checked,delayMinutes:+$("r1delay").value},
+    reminder2:{enabled:$("r2on").checked,delayMinutes:+$("r2delay").value,discountCode:$("code").value},
+    languages:langs,
+    maxAgeGraceHours:S.maxAgeGraceHours||12
+  };
+  const r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(r.ok){$("saved").classList.add("show");setTimeout(()=>$("saved").classList.remove("show"),2000);load()}
+  else alert("Opslaan mislukt");
+}
+
+async function runNow(btn){
+  btn.textContent="Bezig…";btn.disabled=true;
+  const r=await fetch("/api/run",{method:"POST"});
+  const d=await r.json();
+  btn.textContent=`▶ Run nu handmatig`;btn.disabled=false;
+  alert(d.error?("Fout: "+d.error):`Run klaar: ${d.sent} bericht(en) verstuurd (${d.checkouts} open checkouts gecheckt)`);
+  load();
+}
+
+load();
+setInterval(load,120000); // ververs elke 2 min
+</script>
+</body>
+</html>
