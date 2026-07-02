@@ -1,14 +1,14 @@
 /**
- * Drivemax Recovery — Railway app
- * - Serveert dashboard op / (met wachtwoord)
- * - API: /api/overview, /api/settings, /api/run (handmatig triggeren)
+ * Drivemax Recovery — Railway app (platte bestandsstructuur)
+ * - Dashboard op / (met wachtwoord)
+ * - API: /api/overview, /api/settings, /api/run
  * - Cron: elke 15 min recovery-run
  */
 const express = require("express");
 const cron = require("node-cron");
 const path = require("path");
-const db = require("./lib/db");
-const { runRecovery, getRecovered } = require("./lib/recovery");
+const db = require("./db");
+const { runRecovery, getRecovered } = require("./recovery");
 
 const app = express();
 app.use(express.json());
@@ -28,7 +28,8 @@ app.use((req, res, next) => {
   res.status(401).send("Login vereist");
 });
 
-app.use(express.static(path.join(__dirname, "public")));
+// Dashboard (index.html staat in de root van de repo)
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index.html")));
 
 // ---------- API ----------
 
@@ -45,7 +46,6 @@ app.get("/api/overview", async (req, res) => {
 app.post("/api/settings", async (req, res) => {
   try {
     const s = req.body;
-    // minimale validatie
     if (!s?.reminder1 || !s?.reminder2 || !s?.languages) throw new Error("Ongeldige settings");
     s.reminder1.delayMinutes = Math.max(15, parseInt(s.reminder1.delayMinutes) || 60);
     s.reminder2.delayMinutes = Math.max(60, parseInt(s.reminder2.delayMinutes) || 1440);
